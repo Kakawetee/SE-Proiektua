@@ -1,0 +1,29 @@
+#ifndef simulazioa_H
+#define simulazioa_H
+
+#include <pthread.h> // Necesario para el mutex
+
+typedef struct {
+    int cpu_numb;
+    int cores_per_cpu;
+    int hwthreads_per_core;
+} Machine;
+
+typedef struct {
+    int pid;
+    int life_time;
+} PCB;
+
+typedef struct Node {
+    PCB pcb;
+    struct Node* next;
+} Node;
+
+typedef struct {
+    Node* head;
+    Node* tail;
+    int size;
+    pthread_mutex_t mutex;
+} ProcessQueue;
+
+#endif 
