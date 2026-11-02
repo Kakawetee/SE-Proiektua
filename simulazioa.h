@@ -1,5 +1,5 @@
-#ifndef simulazioa_H
-#define simulazioa_H
+#ifndef simulazioa.h
+#define simulazioa.h
 
 #include <pthread.h> // Necesario para el mutex
 
