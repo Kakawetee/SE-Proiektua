@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
 	else
 	{
 		Machine m;
-		init_machine(m, argv[1], argv[2], argv[3]);
+		init_machine(&m, argv[1], argv[2], argv[3]);
 	}
 
 	while (1)
