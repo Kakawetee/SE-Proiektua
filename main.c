@@ -9,11 +9,11 @@ int ticks_erloju = 0;
 int ticks_timer = 0;
 int sim = 1;
 //Mutex eta kondiziozko bariableak timerentzak
-pthread_mutex_t mutex_timer = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t cond_timer = PTHREAD_COND_INITIALIZER;
+int pthread_mutex_t mutex_timer = PTHREAD_MUTEX_INITIALIZER;
+int pthread_cond_t cond_timer = PTHREAD_COND_INITIALIZER;
 //Mutex eta kondiziozko bariableak prozesuen ilara kudeatzeko
-pthread_mutex_t mutex_ilara = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t cond_ilara = PTHREAD_COND_INITIALIZER;
+int pthread_mutex_t mutex_ilara = PTHREAD_MUTEX_INITIALIZER;
+int pthread_cond_t cond_ilara = PTHREAD_COND_INITIALIZER;
 
 int main(int argc, char *argv[])
 {
