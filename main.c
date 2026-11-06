@@ -4,16 +4,20 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-//Aldagai globalak simulaziorako
+// Aldagai globalak simulaziorako
 int ticks_erloju = 0;
-int ticks_timer = 0;
 int sim = 1;
-//Mutex eta kondiziozko bariableak timerentzak
-int pthread_mutex_t mutex_timer = PTHREAD_MUTEX_INITIALIZER;
-int pthread_cond_t cond_timer = PTHREAD_COND_INITIALIZER;
-//Mutex eta kondiziozko bariableak prozesuen ilara kudeatzeko
-int pthread_mutex_t mutex_ilara = PTHREAD_MUTEX_INITIALIZER;
-int pthread_cond_t cond_ilara = PTHREAD_COND_INITIALIZER;
+int done = 0;
+int tenp_kop = 2; // 2 tenporizadore
+
+// Timer-aren mutexa eta kondizio-aldagaiak (sasikodeko mutex, cond eta cond2)
+pthread_mutex_t mutex_timer = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond_timer = PTHREAD_COND_INITIALIZER;
+pthread_cond_t cond_timer2 = PTHREAD_COND_INITIALIZER;
+
+// Mutex eta kondizio-aldagaia prozesuen ilara kudeatzeko
+pthread_mutex_t mutex_ilara = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond_ilara = PTHREAD_COND_INITIALIZER;
 
 int main(int argc, char *argv[])
 {
@@ -26,7 +30,7 @@ int main(int argc, char *argv[])
 	else
 	{
 		Machine m;
-		init_machine(&m, argv[1], argv[2], argv[3]);
+		init_machine(&m, atoi(argv[1]), atoi(argv[2]), atoi(argv[3]));
 	}
 
 	while (1)

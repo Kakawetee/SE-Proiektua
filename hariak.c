@@ -4,17 +4,22 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 
 extern int ticks_erloju;
-extern int ticks_timer;
 extern int sim;
+extern int done;
+extern int tenp_kop;
+
 extern pthread_mutex_t mutex_timer;
 extern pthread_cond_t cond_timer;
+extern pthread_cond_t cond_timer2;
+
 extern pthread_mutex_t mutex_ilara;
 extern pthread_cond_t cond_ilara;
 
 ThreadArgs sortuThreadArgs(int clock_freq, int timer_freq, int duration, ProcessQueue *queue) {
-    // Hari errutinek behar duten konfigurazioa biltzen du.
+    // Hari guztiek behar duten konfigurazioa egitura bakarrean biltzen du.
     ThreadArgs args = {
         .clock_freq = clock_freq,
         .timer_freq = timer_freq,
@@ -23,7 +28,7 @@ ThreadArgs sortuThreadArgs(int clock_freq, int timer_freq, int duration, Process
     };
 
     if (queue == NULL) {
-        // Ilara nulua bada, ezin da konfigurazio baliodunik sortu.
+        // Ilara nulua bada, konfigurazioa ez da balioduna.
         fprintf(stderr, "Error: Invalid arguments to sortuThreadArgs\n");
         return (ThreadArgs){0};
     }
@@ -32,65 +37,89 @@ ThreadArgs sortuThreadArgs(int clock_freq, int timer_freq, int duration, Process
 }
 
 void *clockErrutina(void *arg) {
-ThreadArgs *args = (ThreadArgs *)arg;
-    if (args == NULL || args->clock_freq <= 0) {
-        // Maiztasun baliodunik gabe ezin dira etenak sortu.
+    ThreadArgs *args = (ThreadArgs *)arg;
+    if (args == NULL || args->clock_freq < 1 || args->duration < 0) {
+        // Argumentuak baliozkoak ez badira, haria ezin da exekutatu.
         fprintf(stderr, "Error: Invalid arguments to clockErrutina\n");
         return NULL;
     }
-int itxoin = 1000000 / args->clock_freq; // Itxoin beharreko denbora
+    int itxoin = 1000000 / args->clock_freq;
 
-    // Erlojuak tick bat aurreratzen du kalkulatutako denbora-tarte bakoitzean.
+    // Erlojuak tick bat sortzen du konfiguratutako maiztasunarekin.
     while (ticks_erloju < args->duration) {
-        usleep(itxoin); // Denbora pasa simulatu
+        // Hurrengo tick-a iritsi arte itxaroten du.
+        usleep(itxoin);
 
         pthread_mutex_lock(&mutex_timer);
+        // Tenporizadore guztiak prest egon arte itxaroten du.
+        while (done < tenp_kop) {
+            pthread_cond_wait(&cond_timer, &mutex_timer);
+        }
+        // Hurrengo ziklorako prest dauden tenporizadoreen kontagailua berrezartzen du.
+        done = 0;
         ticks_erloju++;
-        // Timer-ari tick berri bat igaro dela jakinaraztentimer_freq zaio.
-        pthread_cond_signal(&cond_timer);
+        // Tenporizadore guztiak batera esnatzen ditu tick berria prozesatzeko.
+        pthread_cond_broadcast(&cond_timer2);
         pthread_mutex_unlock(&mutex_timer);
     }
 
-    // Erlojua amaitzean, simulazioa bukatu dela jakinarazi
+    // Azken tick-a amaitu arte itxaron aurretik simulazioa ez du amaitzen.
+    pthread_mutex_lock(&mutex_timer);
+    while (done < tenp_kop) {
+        pthread_cond_wait(&cond_timer, &mutex_timer);
+    }
+    // Simulazioaren amaiera adierazten du eta tenporizadoreak esnatzen ditu.
     sim = 0;
-    pthread_cond_broadcast(&cond_timer);
+    pthread_cond_broadcast(&cond_timer2);
+    pthread_mutex_unlock(&mutex_timer);
+
+    pthread_mutex_lock(&mutex_ilara);
+    // Ilaran itxaroten dauden hariak ere esnatzen ditu.
     pthread_cond_broadcast(&cond_ilara);
+    pthread_mutex_unlock(&mutex_ilara);
 
     return NULL;
 }
 
-
+// Sasikodeko T haria: tenporizadorea.
 void *timerErrutina(void *arg) {
     ThreadArgs *args = (ThreadArgs *)arg;
-
-    if (args == NULL || args->timer_freq <= 0) {
-        // Maiztasun baliodunik gabe ezin dira etenak sortu.
+    if (args == NULL || args->timer_freq < 1) {
+        // Maiztasun baliodunik gabe ezin da timer-aren lana egin.
         fprintf(stderr, "Error: Invalid arguments to timerErrutina\n");
         return NULL;
     }
 
-    // Timer-ak aktibo jarraitzen du simulazioa martxan dagoen bitartean.
+    int nire_ticks = 0;
+
+    // Mutex-a begiztaren aurretik hartzen du.
+    pthread_mutex_lock(&mutex_timer);
     while (sim) {
-        pthread_mutex_lock(&mutex_timer);
-        // Erlojuak beste tick bat igaro dela adierazi arte itxaroten du.
-        pthread_cond_wait(&cond_timer, &mutex_timer);
+        // Timer hau prest dagoela jakinarazten dio erlojuari.
+        done++;
+        pthread_cond_signal(&cond_timer);
+        // Erlojuak tick berria baimendu arte itxaroten du.
+        pthread_cond_wait(&cond_timer2, &mutex_timer);
 
         if (!sim) {
-            // Erlojua amaitu da eta ez dago prozesatzeko tick gehiagorik.
-            pthread_mutex_unlock(&mutex_timer);
             break;
         }
 
-        // Timer-ak jasotako tick-ak zenbatzen ditu.
-        ticks_timer++;
+        // Timer honek prozesatutako tick kopurua handitzen du.
+        nire_ticks++;
         pthread_mutex_unlock(&mutex_timer);
 
-        // timer_freq tick bakoitzeko, ilarako hariei jakinarazten zaie.
-        if (ticks_timer % args->timer_freq == 0) {
+        // Ezarritako maiztasunera iristean, PG eta scheduler-a esnatzen ditu.
+        if (nire_ticks % args->timer_freq == 0) {
+            pthread_mutex_lock(&mutex_ilara);
             pthread_cond_broadcast(&cond_ilara);
+            pthread_mutex_unlock(&mutex_ilara);
         }
+
+        pthread_mutex_lock(&mutex_timer);
     }
 
+    pthread_mutex_unlock(&mutex_timer);
     return NULL;
 }
 
@@ -99,18 +128,21 @@ void *pgErrutina(void *arg) {
     int pid = 1;
 
     if (queue == NULL) {
+        // Ilara gabe ezin da prozesurik sortu.
         fprintf(stderr, "Error: Invalid queue in pgErrutina\n");
         return NULL;
     }
 
     while (sim) {
         pthread_mutex_lock(&mutex_ilara);
+        // Timer-ak prozesu berri bat sortzeko seinalea eman arte itxaroten du.
         pthread_cond_wait(&cond_ilara, &mutex_ilara);
 
         if (!sim) {
             pthread_mutex_unlock(&mutex_ilara);
             break;
         }
+        pthread_mutex_unlock(&mutex_ilara);
 
         // Prozesu berri bat sortu eta ilaran sartzen du.
         int life_time = (rand() % 10) + 1;
@@ -119,7 +151,6 @@ void *pgErrutina(void *arg) {
             pid++;
         }
 
-        pthread_mutex_unlock(&mutex_ilara);
     }
 
     return NULL;
@@ -130,25 +161,26 @@ void *schedulerErrutina(void *arg) {
     PCB process;
 
     if (queue == NULL) {
+        // Ilara gabe scheduler-ak ezin du prozesurik kudeatu.
         fprintf(stderr, "Error: Invalid queue in schedulerErrutina\n");
         return NULL;
     }
 
     while (sim) {
         pthread_mutex_lock(&mutex_ilara);
+        // Ilara batean prozesu bat dagoela jakinarazi arte itxaroten du.
         pthread_cond_wait(&cond_ilara, &mutex_ilara);
 
         if (!sim) {
             pthread_mutex_unlock(&mutex_ilara);
             break;
         }
+        pthread_mutex_unlock(&mutex_ilara);
 
         // Ilaratik prozesu bat ateratzen saiatzen da.
         if (dequeue_process(queue, &process) == 0) {
             printf("[Scheduler] Prozesua bidaltzen, PIDa: %d\n", process.pid);
         }
-
-        pthread_mutex_unlock(&mutex_ilara);
     }
 
     return NULL;
