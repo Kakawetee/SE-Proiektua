@@ -3,11 +3,15 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <ctype.h>
 
 //Aldagai globalak simulaziorako
 int ticks_erloju = 0;
 int ticks_timer = 0;
 int sim = 1;
+
+int cpus, cores, hwthreads, clock_freq, timer_freq, duration;
+
 //Mutex eta kondiziozko bariableak timerentzak
 pthread_mutex_t mutex_timer = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond_timer = PTHREAD_COND_INITIALIZER;
@@ -17,20 +21,41 @@ pthread_cond_t cond_ilara = PTHREAD_COND_INITIALIZER;
 
 int main(int argc, char *argv[])
 {
+	
+	for(int i=0; i<argc; i+=2)
+	{
+		if(!isdigit(argv[i+1])){
+			printf("Emandako parametroa ez da zenbakizkoa: %c, exekuzioa etengo da.",argv[i+1]);
+			return 1;
+		}
+		switch (argv[i]) {
+			case '-cpus':
+				cpus = argv[i+1];
+				break;
+			case '-cores':
+				cores = argv[i+1];
+				break;
+			case '-hwthreads':
+				hwthreads = argv[i+1];
+				break;
+			case '-clock-freq':
+				clock_freq = argv[i+1];
+				break;
+			case '-timer-freq':
+				timer_freq = argv[i+1];
+				break;
+			case '-duration':
+				duration = argv[i+1];
+				break;
+			default:
+				printf("Emandako parametroa ez da baliozkoa: %c\n",argv[i]);
+				break;
+	}
 
-	if (argc != 4)
-	{
-		fprintf(stderr, "Parametro kopurua ez da zuzena");
-		return 1;
-	}
-	else
-	{
-		Machine m;
-		init_machine(&m, argv[1], argv[2], argv[3]);
-	}
 
 	while (1)
 	{
+
 	}
 
 	return 0;
