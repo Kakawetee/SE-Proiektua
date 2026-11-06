@@ -13,5 +13,7 @@ typedef struct {
 ThreadArgs sortuThreadArgs(int clock_freq, int timer_freq, int duration, ProcessQueue *queue);
 void *clockErrutina(void *arg);
 void *timerErrutina(void *arg);
+void *pgErrutina(void *arg);
+void *schedulerErrutina(void *arg);
 
 #endif
