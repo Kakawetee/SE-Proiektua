@@ -56,9 +56,9 @@ int main(int argc, char *argv[])
 			default:
 				printf("Emandako parametroa ez da baliozkoa: %c\n",argv[i]);
 				break;
-			}
 		}
 	}
+	
 	while (1)
 	{
 	}
