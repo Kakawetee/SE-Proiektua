@@ -21,7 +21,6 @@ pthread_cond_t cond_ilara = PTHREAD_COND_INITIALIZER;
 
 int main(int argc, char *argv[])
 {
-
 	if (argc != 4)
 	{
 		fprintf(stderr, "Parametro kopurua ez da zuzena");
