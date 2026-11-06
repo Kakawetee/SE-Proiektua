@@ -10,7 +10,12 @@ int ticks_erloju = 0;
 int ticks_timer = 0;
 int sim = 1;
 
-int cpus, cores, hwthreads, clock_freq, timer_freq, duration;
+int cpus = 2;
+int cores = 4;
+int hwthreads = 2;
+int clock_freq = 1;
+int timer_freq = 5;
+int duration = 100;
 
 //Mutex eta kondiziozko bariableak timerentzak
 pthread_mutex_t mutex_timer = PTHREAD_MUTEX_INITIALIZER;
@@ -55,7 +60,7 @@ int main(int argc, char *argv[])
 
 	while (1)
 	{
-
+		
 	}
 
 	return 0;
