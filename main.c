@@ -99,9 +99,50 @@ int main(int argc, char *argv[])
 			return 1;
 	}
 	
-	while (1)
+// 1. Datu egiturak hasieratu
+	Machine machine;
+	init_machine(&machine, cpus, cores, hwthreads);
+	
+	ProcessQueue queue;
+	if (init_process_queue(&queue) != 0)
 	{
+		fprintf(stderr, "Errorea ilara hasieratzean.\n");
+		return 1;
 	}
+	
+	ThreadArgs args = sortuThreadArgs(clock_freq, timer_freq, duration, &queue);
+
+	// 2. Sistemako hariak pthread_create bidez abiarazi
+	pthread_t clock_thread;
+	pthread_t timer_threads[tenp_kop];
+	pthread_t pg_thread;
+	pthread_t scheduler_thread;
+
+	pthread_create(&clock_thread, NULL, clockErrutina, &args);
+	
+	for (int j = 0; j < tenp_kop; j++)
+	{
+		pthread_create(&timer_threads[j], NULL, timerErrutina, &args);
+	}
+	
+	pthread_create(&pg_thread, NULL, pgErrutina, &queue);
+	pthread_create(&scheduler_thread, NULL, schedulerErrutina, &queue);
+
+	// 3. pthread_join bidez simulazioa amaitzen den arte itxaron
+	pthread_join(clock_thread, NULL);
+	
+	for (int j = 0; j < tenp_kop; j++)
+	{
+		pthread_join(timer_threads[j], NULL);
+	}
+	
+	pthread_join(pg_thread, NULL);
+	pthread_join(scheduler_thread, NULL);
+
+	// 4. Baliabide guztiak askatu
+	destroy_process_queue(&queue);
+
+	return 0;
 
 	return 0;
 }
