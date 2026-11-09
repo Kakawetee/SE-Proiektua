@@ -187,6 +187,8 @@ void *schedulerErrutina(void *arg) {
         // Ilaratik prozesu bat ateratzen saiatzen da.
         if (dequeue_process(queue, &process) == 0) {
             printf("[Scheduler] Prozesua bidaltzen, PIDa: %d\n", process.pid);
+        } else {
+            printf("[Scheduler] Ez dago prozesurik ilaran.\n");
         }
     }
 
