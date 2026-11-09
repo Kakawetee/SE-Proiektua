@@ -38,7 +38,7 @@ ThreadArgs sortuThreadArgs(int clock_freq, int timer_freq, int duration, Process
 
 void *clockErrutina(void *arg) {
     ThreadArgs *args = (ThreadArgs *)arg;
-    if (args == NULL || args->clock_freq < 1 || args->duration < 0) {
+    if (args == NULL || args->clock_freq <= 0 || args->duration < 0) {
         // Argumentuak baliozkoak ez badira, haria ezin da exekutatu.
         fprintf(stderr, "Error: Invalid arguments to clockErrutina\n");
         return NULL;
