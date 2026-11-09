@@ -120,9 +120,9 @@ int main(int argc, char *argv[])
 
 	pthread_create(&clock_thread, NULL, clockErrutina, &args);
 	
-	for (int j = 0; j < tenp_kop; j++)
+	for (int i = 0; i < tenp_kop; i++)
 	{
-		pthread_create(&timer_threads[j], NULL, timerErrutina, &args);
+		pthread_create(&timer_threads[i], NULL, timerErrutina, &args);
 	}
 	
 	pthread_create(&pg_thread, NULL, pgErrutina, &queue);
@@ -131,9 +131,9 @@ int main(int argc, char *argv[])
 	// 3. pthread_join bidez simulazioa amaitzen den arte itxaron
 	pthread_join(clock_thread, NULL);
 	
-	for (int j = 0; j < tenp_kop; j++)
+	for (int i = 0; i < tenp_kop; i++)
 	{
-		pthread_join(timer_threads[j], NULL);
+		pthread_join(timer_threads[i], NULL);
 	}
 	
 	pthread_join(pg_thread, NULL);
@@ -141,8 +141,6 @@ int main(int argc, char *argv[])
 
 	// 4. Baliabide guztiak askatu
 	destroy_process_queue(&queue);
-
-	return 0;
 
 	return 0;
 }
