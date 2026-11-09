@@ -43,6 +43,8 @@ void *clockErrutina(void *arg) {
         fprintf(stderr, "Error: Invalid arguments to clockErrutina\n");
         return NULL;
     }
+    // usleep() erabiliko dugunez mikrosegunduekin egingo dugu lan
+    // beraz, 1000000 mikrosegundu / frekuentzia = periodoa
     int itxoin = 1000000 / args->clock_freq;
 
     // Erlojuak tick bat sortzen du konfiguratutako maiztasunarekin.
@@ -66,16 +68,21 @@ void *clockErrutina(void *arg) {
     // Azken tick-a amaitu arte itxaron aurretik simulazioa ez du amaitzen.
     pthread_mutex_lock(&mutex_timer);
     while (done < tenp_kop) {
+        // mutex_timer askatu timerrak sartzeko, haria lo utzi, 
+        // eta pthread_cond_signal() egiten da done++ ostean, tenp
         pthread_cond_wait(&cond_timer, &mutex_timer);
     }
     // Simulazioaren amaiera adierazten du eta tenporizadoreak esnatzen ditu.
     sim = 0;
+
+    // Timerrari tick berria baimentzen dio
     pthread_cond_broadcast(&cond_timer2);
     pthread_mutex_unlock(&mutex_timer);
 
     pthread_mutex_lock(&mutex_ilara);
     // Ilaran itxaroten dauden hariak ere esnatzen ditu.
     pthread_cond_broadcast(&cond_ilara);
+    
     pthread_mutex_unlock(&mutex_ilara);
 
     return NULL;
