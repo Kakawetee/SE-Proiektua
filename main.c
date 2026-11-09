@@ -1,8 +1,10 @@
 #include "simulazioa.h"
 
-#include <ctype.h>
-#include <stdlib.h>
+#include <errno.h>
+#include <limits.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 // Aldagai globalak simulaziorako
 int ticks_erloju = 0;
@@ -26,37 +28,73 @@ int clock_freq = 1;
 int timer_freq = 5;
 int duration = 100;
 
+static int irakurriZenbakia(const char *parametroa, const char *balioa)
+{
+	char *amaiera;
+	long zenbakia;
+
+	errno = 0;
+	zenbakia = strtol(balioa, &amaiera, 10); //strtol amaiera aldagaia irakurri ezin izan duen lehenengo karakterea gordetzen du.
+	if (balioa == amaiera || *amaiera != '\0' || errno == ERANGE ||
+		zenbakia < 1 || zenbakia > INT_MAX)
+	{
+		fprintf(stderr, "Balio numeriko baliogabea %s parametroarentzat: %s\n",
+			parametroa, balioa);
+		return -1;
+	}
+
+	return (int)zenbakia;
+}
+
 int main(int argc, char *argv[])
 {
-	for(int i=0; i<argc; i+=2)
+	for (int i = 1; i < argc; i += 2)
 	{
-		if(!isdigit(argv[i+1])){
-			printf("Emandako parametroa ez da zenbakizkoa: %c, exekuzioa etengo da.",argv[i+1]);
+		if (i + 1 >= argc)
+		{
+			fprintf(stderr, "Parametroak izen eta balio bikoteetan eman behar dira.\n");
 			return 1;
 		}
-		switch (argv[i]) {
-			case '-cpus':
-				cpus = argv[i+1];
-				break;
-			case '-cores':
-				cores = argv[i+1];
-				break;
-			case '-hwthreads':
-				hwthreads = argv[i+1];
-				break;
-			case '-clock-freq':
-				clock_freq = argv[i+1];
-				break;
-			case '-timer-freq':
-				timer_freq = argv[i+1];
-				break;
-			case '-duration':
-				duration = argv[i+1];
-				break;
-			default:
-				printf("Emandako parametroa ez da baliozkoa: %c\n",argv[i]);
-				break;
+
+		int balioa;
+		if (strcmp(argv[i], "-cpus") == 0)
+		{
+			balioa = irakurriZenbakia(argv[i], argv[i + 1]);
+			cpus = balioa;
 		}
+		else if (strcmp(argv[i], "-cores") == 0)
+		{
+			balioa = irakurriZenbakia(argv[i], argv[i + 1]);
+			cores = balioa;
+		}
+		else if (strcmp(argv[i], "-hwthreads") == 0)
+		{
+			balioa = irakurriZenbakia(argv[i], argv[i + 1]);
+			hwthreads = balioa;
+		}
+		else if (strcmp(argv[i], "-clock-freq") == 0)
+		{
+			balioa = irakurriZenbakia(argv[i], argv[i + 1]);
+			clock_freq = balioa;
+		}
+		else if (strcmp(argv[i], "-timer-freq") == 0)
+		{
+			balioa = irakurriZenbakia(argv[i], argv[i + 1]);
+			timer_freq = balioa;
+		}
+		else if (strcmp(argv[i], "-duration") == 0)
+		{
+			balioa = irakurriZenbakia(argv[i], argv[i + 1]);
+			duration = balioa;
+		}
+		else
+		{
+			fprintf(stderr, "Parametro ezezaguna: %s\n", argv[i]);
+			return 1;
+		}
+
+		if (balioa < 0)
+			return 1;
 	}
 	
 	while (1)
