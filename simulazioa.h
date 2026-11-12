@@ -16,7 +16,7 @@ typedef struct
 	int life_time;
 } PCB;
 
-typedef struct Node
+typedef struct
 {
 	PCB pcb;
 	struct Node *next;
