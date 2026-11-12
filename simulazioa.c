@@ -5,16 +5,38 @@
 
 // *** SORTUTAKO STRUCT-AK HASIERATZEKO FUNTZIOAK *** //
 ////////////////////////////////////////////////////////
-void init_machine(Machine *machine, int cpu_numb, int cores_per_cpu, int hwthreads_per_core)
+void init_machine(Machine *m, int cpus, int cores, int hwthreads)
 {
-	if (machine == NULL)
+	if (m == NULL)
 	{
 		return;
 	}
 
-	machine->cpu_numb = cpu_numb;
-	machine->cores_per_cpu = cores_per_cpu;
-	machine->hwthreads_per_core = hwthreads_per_core;
+	m->cpu_numb = cpus;
+	m->cores_per_cpu = cores;
+	m->hwthreads_per_core = hwthreads;
+	m->total_hwthreads = cpus * cores * hwthreads;
+	m->free_hwthreads = m->total_hwthreads;
+
+	m->hwthreads = calloc(m->total_hwthreads, sizeof(HWThread));
+	if(m->hwthreads == NULL) reutrn ENOMEM;
+
+	for (int i = 0; i < m->total_hwthreads; i++) {
+        m->hwthreads[i].cpu_id    = i / (cores * hwthreads);
+        m->hwthreads[i].core_id   = (i / hwthreads) % cores;
+        m->hwthreads[i].thread_id = i % hwthreads;
+        m->hwthreads[i].busy = 0;
+        m->hwthreads[i].process = NULL;
+    }
+    return pthread_mutex_init(&m->mutex, NULL);
+}
+
+void destroy_machine(Machine *m)
+{
+	if(m == NULL) return;
+	free(m->hwthreads);
+	m->hwthreads = NULL;
+	pthread_mutex_destroy(&m->mutex);
 }
 
 void init_pcb(PCB *pcb, int pid, int life_time)

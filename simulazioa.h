@@ -22,7 +22,7 @@ typedef struct
 
 typedef struct
 {
-	int cpu_id, core_id, thread_id; // Ez dakit erabiliko dugun
+	int cpu_id, core_id, thread_id; // Pijada mesopotamica
     int busy;
     PCB *process;
 } HWThread;
