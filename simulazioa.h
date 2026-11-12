@@ -54,11 +54,12 @@ typedef struct
 } ProcessQueue;
 
 void init_machine(Machine *machine, int cpu_numb, int cores_per_cpu, int hwthreads_per_core);
-void init_pcb(PCB *pcb, int pid, int life_time);
-void init_node(Node *node, const PCB *pcb);
+void destroy_machine(Machine *machine)
+void init_pcb(PCB *pcb, int pid, int life_time, int arrival_time);
+void init_node(Node *node, PCB *pcb);
 int init_process_queue(ProcessQueue *queue);
 void destroy_process_queue(ProcessQueue *queue);
-int create_process(ProcessQueue *queue, int pid, int life_time);
-int dequeue_process(ProcessQueue *queue, PCB *pcb);
+int create_process(ProcessQueue *queue, int pid, int life_time, int arrival_time);
+int dequeue_process(ProcessQueue *queue, PCB **pcb);
 
 #endif

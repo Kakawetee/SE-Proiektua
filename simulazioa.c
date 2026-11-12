@@ -59,7 +59,7 @@ void init_node(Node *node, const PCB *pcb)
 		return;
 	}
 
-	node->pcb = *pcb;
+	node->pcb = pcb; // Nodoak PCB-ari egiten dio erreferentzia zuzenean, kopia egitea aurrezteko
 	node->next = NULL;
 }
 
@@ -94,6 +94,7 @@ void destroy_process_queue(ProcessQueue *queue)
 	while (node != NULL)
 	{
 		next = node->next;
+		free(node->pcb); // Ilaran dauden PCB-ak hemen askatzen dira zuzenean
 		free(node);
 		node = next;
 	}
@@ -105,10 +106,10 @@ void destroy_process_queue(ProcessQueue *queue)
 }
 
 //
-int create_process(ProcessQueue *queue, int pid, int life_time)
+int create_process(ProcessQueue *queue, int pid, int life_time, int arrival_time)
 {
 	Node *node;
-	PCB pcb;
+	PCB *pcb;
 	int result;
 
 	if (queue == NULL)
@@ -116,20 +117,27 @@ int create_process(ProcessQueue *queue, int pid, int life_time)
 		return EINVAL;
 	}
 
+	pcb = malloc(sizeof(*pcb));
+	if (pcb == NULL)
+	{
+		return ENOMEM;
+	}
+	
 	node = malloc(sizeof(*node));
 	if (node == NULL)
 	{
 		return ENOMEM;
 	}
 
-	init_pcb(&pcb, pid, life_time);
-	init_node(node, &pcb);
+	init_pcb(pcb, pid, life_time, arrival_time); // Pcb-a direktu pasatzen zaie, kopia sortuz gero, &pcb sartu beharko litzateke
+	init_node(node, pcb);
 
 	// main.c-n begiratu 0 ez badu bueltatzen akatsen bat egon da, beraz berriro
 	// prozesua sortzen saiatu beharko litzateke
 	result = pthread_mutex_lock(&queue->mutex);
 	if (result != 0)
 	{
+		free(pcb)
 		free(node);
 		return result;
 	}
@@ -159,7 +167,7 @@ int create_process(ProcessQueue *queue, int pid, int life_time)
 }
 
 // Ilaratik prozesua ateratzeko
-int dequeue_process(ProcessQueue *queue, PCB *pcb)
+int dequeue_process(ProcessQueue *queue, PCB **pcb)
 {
 	Node *node;
 	int result;
