@@ -9,7 +9,7 @@ typedef struct HWThread HWThread;
 typedef struct PCB PCB;
 typedef struct Node Node;
 
-typedef struct
+struct PCB
 {
 	int pid;
     ProcessState egoera;
@@ -18,14 +18,14 @@ typedef struct
     int prio; // Oraindik ez dugu inplementatuko
     int quantum; // Oraindik ez dugu inplementatuko
 	HWThread *hwthread; // NULL ez badago exekuzioan
-} PCB;
+};
 
-typedef struct
+struct HWThread
 {
 	int cpu_id, core_id, thread_id; // Pijada mesopotamica
     int busy;
     PCB *process;
-} HWThread;
+};
 
 typedef struct
 {
@@ -39,11 +39,11 @@ typedef struct
 } Machine;
 
 
-typedef struct
+struct Node
 {
 	PCB *pcb;
 	Node *next;
-} Node;
+};
 
 typedef struct
 {
@@ -53,8 +53,8 @@ typedef struct
 	pthread_mutex_t mutex;
 } ProcessQueue;
 
-void init_machine(Machine *machine, int cpu_numb, int cores_per_cpu, int hwthreads_per_core);
-void destroy_machine(Machine *machine)
+int init_machine(Machine *machine, int cpu_numb, int cores_per_cpu, int hwthreads_per_core);
+void destroy_machine(Machine *machine);
 void init_pcb(PCB *pcb, int pid, int life_time, int arrival_time);
 void init_node(Node *node, PCB *pcb);
 int init_process_queue(ProcessQueue *queue);

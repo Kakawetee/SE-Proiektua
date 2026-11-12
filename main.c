@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
 	{
 		
 		fprintf(stderr, "Errorea ilara hasieratzean.\n");
-		destroy_machine(&machine)
+		destroy_machine(&machine);
 		return 1;
 	}
 	
@@ -149,6 +149,6 @@ int main(int argc, char *argv[])
 
 	// 4. Baliabide guztiak askatu
 	destroy_process_queue(&queue);
-	destroy_machine(&machine)
+	destroy_machine(&machine);
 	return 0;
 }

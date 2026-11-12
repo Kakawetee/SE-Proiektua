@@ -5,11 +5,11 @@
 
 // *** SORTUTAKO STRUCT-AK HASIERATZEKO FUNTZIOAK *** //
 ////////////////////////////////////////////////////////
-void init_machine(Machine *m, int cpus, int cores, int hwthreads)
+int init_machine(Machine *m, int cpus, int cores, int hwthreads)
 {
 	if (m == NULL)
 	{
-		return;
+		return EINVAL;
 	}
 
 	m->cpu_numb = cpus;
@@ -19,7 +19,7 @@ void init_machine(Machine *m, int cpus, int cores, int hwthreads)
 	m->free_hwthreads = m->total_hwthreads;
 
 	m->hwthreads = calloc(m->total_hwthreads, sizeof(HWThread));
-	if(m->hwthreads == NULL) reutrn ENOMEM;
+	if(m->hwthreads == NULL) return ENOMEM;
 
 	for (int i = 0; i < m->total_hwthreads; i++) {
         m->hwthreads[i].cpu_id    = i / (cores * hwthreads);
@@ -52,7 +52,7 @@ void init_pcb(PCB *pcb, int pid, int life_time, int arrival_time)
 	pcb->hwthread = NULL;
 }
 
-void init_node(Node *node, const PCB *pcb)
+void init_node(Node *node, PCB *pcb)
 {
 	if (node == NULL || pcb == NULL)
 	{
@@ -137,7 +137,7 @@ int create_process(ProcessQueue *queue, int pid, int life_time, int arrival_time
 	result = pthread_mutex_lock(&queue->mutex);
 	if (result != 0)
 	{
-		free(pcb)
+		free(pcb);
 		free(node);
 		return result;
 	}
