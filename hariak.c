@@ -170,7 +170,7 @@ void *pgErrutina(void *arg) {
 
         // Prozesu bat ausazko iraupenarekin sortu eta ilaran sartzen du.
         int life_time = (rand() % 10) + 1;
-        if (create_process(queue, pid, life_time) == 0) {
+        if (create_process(queue, pid, life_time, azken_tick) == 0) {
             printf("[PG] Prozesua sortuta, PIDa: %d\n", pid);
             pid++;
             // Scheduler-ari ilaran prozesu berria dagoela jakinarazten dio.
@@ -189,7 +189,7 @@ void *pgErrutina(void *arg) {
 
 void *schedulerErrutina(void *arg) {
     ProcessQueue *queue = (ProcessQueue *)arg;
-    PCB process;
+    PCB *process = NULL;
 
     if (queue == NULL) {
         // Ilara gabe scheduler-ak ezin du prozesurik kudeatu.
@@ -210,7 +210,8 @@ void *schedulerErrutina(void *arg) {
 
         // Ilaratik prozesu bat ateratzen saiatzen da.
         if (dequeue_process(queue, &process) == 0) {
-            printf("[Scheduler] Prozesua bidaltzen, PIDa: %d\n", process.pid);
+            printf("[Scheduler] Prozesua bidaltzen, PIDa: %d\n", process->pid);
+            free(process) // Tenporala, dispatcherra oraindik ez dugulako programatu
         } else {
             printf("[Scheduler] Ez dago prozesurik ilaran.\n");
         }
