@@ -14,6 +14,7 @@ extern int tenp_kop;
 extern pthread_mutex_t mutex_timer;
 extern pthread_cond_t cond_timer;
 extern pthread_cond_t cond_timer2;
+extern pthread_cond_t cond_pg;
 
 extern pthread_mutex_t mutex_ilara;
 extern pthread_cond_t cond_ilara;
@@ -62,6 +63,8 @@ void *clockErrutina(void *arg) {
         ticks_erloju++;
         // Tenporizadore guztiak batera esnatzen ditu tick berria prozesatzeko.
         pthread_cond_broadcast(&cond_timer2);
+        // PGri tick berria jakinarazten dio; PGk bere hurrengo tartea aukeratzen du.
+        pthread_cond_signal(&cond_pg);
         pthread_mutex_unlock(&mutex_timer);
     }
 
@@ -77,6 +80,7 @@ void *clockErrutina(void *arg) {
 
     // Timerrari tick berria baimentzen dio
     pthread_cond_broadcast(&cond_timer2);
+    pthread_cond_signal(&cond_pg);
     pthread_mutex_unlock(&mutex_timer);
 
     pthread_mutex_lock(&mutex_ilara);
@@ -88,7 +92,6 @@ void *clockErrutina(void *arg) {
     return NULL;
 }
 
-// Sasikodeko T haria: tenporizadorea.
 void *timerErrutina(void *arg) {
     ThreadArgs *args = (ThreadArgs *)arg;
     if (args == NULL || args->timer_freq < 1) {
@@ -131,32 +134,53 @@ void *timerErrutina(void *arg) {
 }
 
 void *pgErrutina(void *arg) {
-    ProcessQueue *queue = (ProcessQueue *)arg;
+    ThreadArgs *args = (ThreadArgs *)arg;
+    ProcessQueue *queue;
     int pid = 1;
+    int azken_tick = 0;
+    int hurrengo_sorrera = 1;
+    int tick_kop = 0;
 
-    if (queue == NULL) {
+    if (args == NULL || args->queue == NULL || args->timer_freq < 1) {
         // Ilara gabe ezin da prozesurik sortu.
         fprintf(stderr, "Error: Invalid queue in pgErrutina\n");
         return NULL;
     }
+    queue = args->queue;
 
     while (sim) {
-        pthread_mutex_lock(&mutex_ilara);
-        // Timer-ak prozesu berri bat sortzeko seinalea eman arte itxaroten du.
-        pthread_cond_wait(&cond_ilara, &mutex_ilara);
+        pthread_mutex_lock(&mutex_timer);
+        // Baldintzak tick-ak ez galtzea eta irakurketa partekatua babestea bermatzen du.
+        while (sim && ticks_erloju == azken_tick) {
+            pthread_cond_wait(&cond_pg, &mutex_timer);
+        }
 
         if (!sim) {
-            pthread_mutex_unlock(&mutex_ilara);
+            pthread_mutex_unlock(&mutex_timer);
             break;
         }
-        pthread_mutex_unlock(&mutex_ilara);
+        azken_tick = ticks_erloju;
+        pthread_mutex_unlock(&mutex_timer);
 
-        // Prozesu berri bat sortu eta ilaran sartzen du.
+        tick_kop++;
+        // Oraindik ez da aukeratutako ausazko tartea bete.
+        if (tick_kop < hurrengo_sorrera) {
+            continue;
+        }
+
+        // Prozesu bat ausazko iraupenarekin sortu eta ilaran sartzen du.
         int life_time = (rand() % 10) + 1;
         if (create_process(queue, pid, life_time) == 0) {
             printf("[PG] Prozesua sortuta, PIDa: %d\n", pid);
             pid++;
+            // Scheduler-ari ilaran prozesu berria dagoela jakinarazten dio.
+            pthread_mutex_lock(&mutex_ilara);
+            pthread_cond_signal(&cond_ilara);
+            pthread_mutex_unlock(&mutex_ilara);
         }
+        tick_kop = 0;
+        // Hurrengo prozesua beste tarte aldakor baten ondoren sortuko da.
+        hurrengo_sorrera = (rand() % args->timer_freq) + 1;
 
     }
 

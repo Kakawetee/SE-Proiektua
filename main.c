@@ -18,6 +18,7 @@ int tenp_kop = 2; // 2 tenporizadore
 pthread_mutex_t mutex_timer = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond_timer = PTHREAD_COND_INITIALIZER;
 pthread_cond_t cond_timer2 = PTHREAD_COND_INITIALIZER;
+pthread_cond_t cond_pg = PTHREAD_COND_INITIALIZER;
 
 // Mutex eta kondizio-aldagaia prozesuen ilara kudeatzeko
 pthread_mutex_t mutex_ilara = PTHREAD_MUTEX_INITIALIZER;
@@ -125,7 +126,7 @@ int main(int argc, char *argv[])
 		pthread_create(&timer_threads[i], NULL, timerErrutina, &args);
 	}
 	
-	pthread_create(&pg_thread, NULL, pgErrutina, &queue);
+	pthread_create(&pg_thread, NULL, pgErrutina, &args);
 	pthread_create(&scheduler_thread, NULL, schedulerErrutina, &queue);
 
 	// 3. pthread_join bidez simulazioa amaitzen den arte itxaron
