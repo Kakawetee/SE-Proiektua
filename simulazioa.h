@@ -8,12 +8,22 @@ typedef struct
 	int cpu_numb;
 	int cores_per_cpu;
 	int hwthreads_per_core;
+    struct HWThread *HWThreads; // Mal definido, queria hacer una lista
 } Machine;
 
 typedef struct
 {
+    int blocked;
+    struct PCB *process;
+} HWThread;
+
+typedef struct
+{
 	int pid;
+    int egoera;
 	int life_time;
+    int prio; // Oraindik ez dugu inplementatuko
+    int quantum; // Oraindik ez dugu inplementatuko
 } PCB;
 
 typedef struct
