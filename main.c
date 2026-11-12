@@ -103,11 +103,18 @@ int main(int argc, char *argv[])
 // 1. Datu egiturak hasieratu
 	Machine machine;
 	init_machine(&machine, cpus, cores, hwthreads);
-	
+	if (init_machine(&machine, cpus, cores, hwthreads) != 0)
+	{
+		fprintf(stderr, "Errorea makina hasieratzean.\n");
+		return 1;
+	}
+
 	ProcessQueue queue;
 	if (init_process_queue(&queue) != 0)
 	{
+		
 		fprintf(stderr, "Errorea ilara hasieratzean.\n");
+		destroy_machine(&machine)
 		return 1;
 	}
 	
@@ -142,6 +149,6 @@ int main(int argc, char *argv[])
 
 	// 4. Baliabide guztiak askatu
 	destroy_process_queue(&queue);
-
+	destroy_machine(&machine)
 	return 0;
 }
