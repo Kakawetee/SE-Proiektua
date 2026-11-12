@@ -39,15 +39,17 @@ void destroy_machine(Machine *m)
 	pthread_mutex_destroy(&m->mutex);
 }
 
-void init_pcb(PCB *pcb, int pid, int life_time)
+void init_pcb(PCB *pcb, int pid, int life_time, int arrival_time)
 {
-	if (pcb == NULL)
-	{
-		return;
-	}
+	if (pcb == NULL) return;
 
 	pcb->pid = pid;
+	pcb->egoera = PROC_READY;
 	pcb->life_time = life_time;
+	pcb->arrival_time = arrival_time;
+	pcb->prio = 0;
+	pcb->quantum = 0;
+	pcb->hwthread = NULL;
 }
 
 void init_node(Node *node, const PCB *pcb)
