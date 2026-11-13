@@ -10,6 +10,7 @@
 
 // Aldagai globalak simulaziorako
 int ticks_erloju = 0;
+int tick_sched = 0;
 int sim = 1;
 int done = 0;
 int tenp_kop = 2; // 2 tenporizadore
@@ -118,7 +119,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
-	ThreadArgs args = sortuThreadArgs(clock_freq, timer_freq, duration, &queue);
+	ThreadArgs args = sortuThreadArgs(clock_freq, timer_freq, duration, &queue, &machine, policy_fcfs);
 
 	// 2. Sistemako hariak pthread_create bidez abiarazi
 	pthread_t clock_thread;
@@ -134,7 +135,7 @@ int main(int argc, char *argv[])
 	}
 	
 	pthread_create(&pg_thread, NULL, pgErrutina, &args);
-	pthread_create(&scheduler_thread, NULL, schedulerErrutina, &queue);
+	pthread_create(&scheduler_thread, NULL, schedulerErrutina, &args);
 
 	// 3. pthread_join bidez simulazioa amaitzen den arte itxaron
 	pthread_join(clock_thread, NULL);
