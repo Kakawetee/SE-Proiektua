@@ -38,7 +38,6 @@ typedef struct
 	pthread_mutex_t mutex;
 } Machine;
 
-
 struct Node
 {
 	PCB *pcb;
@@ -52,6 +51,12 @@ typedef struct
 	int size;
 	pthread_mutex_t mutex;
 } ProcessQueue;
+
+typedef PCB *(*SchedPolicy)(ProcessQueue *ready);
+
+PCB *policy_fcfs(ProcessQueue *ready);
+int machine_free_count(Machine *machine);
+int dispatch_process(Machine *machine, PCB *pcb);
 
 int init_machine(Machine *machine, int cpu_numb, int cores_per_cpu, int hwthreads_per_core);
 void destroy_machine(Machine *machine);

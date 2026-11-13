@@ -34,6 +34,11 @@ int init_machine(Machine *m, int cpus, int cores, int hwthreads)
 void destroy_machine(Machine *m)
 {
 	if(m == NULL) return;
+
+	for(int i = 0; i<m->total_hwthreads; i++)
+	{
+		free(m->hwthreads[i].process)
+	}
 	free(m->hwthreads);
 	m->hwthreads = NULL;
 	pthread_mutex_destroy(&m->mutex);
@@ -204,4 +209,48 @@ int dequeue_process(ProcessQueue *queue, PCB **pcb)
 	free(node);
 
 	return result;
+}
+
+// FCFS: el PG añade al final de la cola, así que el primero en llegar está en head.
+PCB *policy_fcfs(ProcessQueue *ready)
+{
+	PCB *pcb = NULL;
+
+	if (dequeue_process(ready, &pcb) != 0) return NULL;
+
+	return pcb;
+}
+
+int machine_free_count(Machine *m) 
+{
+	
+	int libre;
+	pthread_mutex_lock(&m->mutex);
+	libre = m->free_hwthreads;
+	pthread_mutex_unlock(&m->mutex):
+
+	return libre;
+}
+
+int dispatch_process(Machine *m, PCB *pcb)
+{
+	if (m == NULL || pcb == NULL) return EINVAL;
+
+	pthread_mutex_lock(&m->mutex);
+	for (int i = 0; i < m->total_hwthreads; i++)
+	{
+		if(!m->hwthreads[i].busy)
+		{
+			m->hwthreads[i].busy = 1;
+			m->hwthreads[i].process = pcb;
+			pcb->hwthread = &m->hwthreads[i];
+			pcb->egoera = PROC_RUNNING;
+			m->free_hwthreads--;
+			pthread_mutex_unlock(&m->mutex);
+			return 0;
+		}
+	}
+	pthread_mutex_unlock(&m->mutex);
+
+	return ENOSPC;
 }
