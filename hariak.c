@@ -10,6 +10,7 @@ extern int ticks_erloju;
 extern int sim;
 extern int done;
 extern int tenp_kop;
+extern int tick_sched;
 
 extern pthread_mutex_t mutex_timer;
 extern pthread_cond_t cond_timer;
@@ -19,16 +20,18 @@ extern pthread_cond_t cond_pg;
 extern pthread_mutex_t mutex_ilara;
 extern pthread_cond_t cond_ilara;
 
-ThreadArgs sortuThreadArgs(int clock_freq, int timer_freq, int duration, ProcessQueue *queue) {
+ThreadArgs sortuThreadArgs(int clock_freq, int timer_freq, int duration, ProcessQueue *queue, Machine *machine, SchedPolicy policy) {
     // Hari guztiek behar duten konfigurazioa egitura bakarrean biltzen du.
     ThreadArgs args = {
         .clock_freq = clock_freq,
         .timer_freq = timer_freq,
         .duration = duration,
-        .queue = queue
+        .queue = queue;
+        .machine = machine;
+        .policy = policy;
     };
 
-    if (queue == NULL) {
+    if (queue == NULL || machine == null || policy == NULL) {
         // Ilara nulua bada, konfigurazioa ez da balioduna.
         fprintf(stderr, "Error: Invalid arguments to sortuThreadArgs\n");
         return (ThreadArgs){0};
@@ -122,6 +125,7 @@ void *timerErrutina(void *arg) {
         // Ezarritako maiztasunera iristean, PG eta scheduler-a esnatzen ditu.
         if (nire_ticks % args->timer_freq == 0) {
             pthread_mutex_lock(&mutex_ilara);
+            tick_sched = 1;
             pthread_cond_broadcast(&cond_ilara);
             pthread_mutex_unlock(&mutex_ilara);
         }
@@ -173,10 +177,6 @@ void *pgErrutina(void *arg) {
         if (create_process(queue, pid, life_time, azken_tick) == 0) {
             printf("[PG] Prozesua sortuta, PIDa: %d\n", pid);
             pid++;
-            // Scheduler-ari ilaran prozesu berria dagoela jakinarazten dio.
-            pthread_mutex_lock(&mutex_ilara);
-            pthread_cond_signal(&cond_ilara);
-            pthread_mutex_unlock(&mutex_ilara);
         }
         tick_kop = 0;
         // Hurrengo prozesua beste tarte aldakor baten ondoren sortuko da.

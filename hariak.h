@@ -8,9 +8,12 @@ typedef struct {
     int timer_freq;
     int duration;
     ProcessQueue *queue;
+    Machine *machine;
+    SchedPolicy policy;
 } ThreadArgs;
 
-ThreadArgs sortuThreadArgs(int clock_freq, int timer_freq, int duration, ProcessQueue *queue);
+ThreadArgs sortuThreadArgs(int clock_freq, int timer_freq, int duration, 
+    ProcessQueue *queue, Machine *machine, SchedPolicy policy);
 void *clockErrutina(void *arg);
 void *timerErrutina(void *arg);
 void *pgErrutina(void *arg);
