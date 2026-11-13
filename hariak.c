@@ -187,33 +187,45 @@ void *pgErrutina(void *arg) {
     return NULL;
 }
 
+// Scheduling / Dispatching
 void *schedulerErrutina(void *arg) {
-    ProcessQueue *queue = (ProcessQueue *)arg;
-    PCB *process = NULL;
+    ThreadArgs *args = (ThreadArgs *)arg;
 
-    if (queue == NULL) {
+    if (args == NULL || args->queue == NULL || args->machine == NULL || args->policy) {
         // Ilara gabe scheduler-ak ezin du prozesurik kudeatu.
-        fprintf(stderr, "Error: Invalid queue in schedulerErrutina\n");
+        fprintf(stderr, "Error: Invalid arguments schedulerErrutina\n");
         return NULL;
     }
 
-    while (sim) {
+    while (1) {
         pthread_mutex_lock(&mutex_ilara);
         // Ilara batean prozesu bat dagoela jakinarazi arte itxaroten du.
+        while (sim && !tick_sched) {
         pthread_cond_wait(&cond_ilara, &mutex_ilara);
+        }
 
         if (!sim) {
             pthread_mutex_unlock(&mutex_ilara);
             break;
         }
+        tick_sched = 0;
         pthread_mutex_unlock(&mutex_ilara);
 
-        // Ilaratik prozesu bat ateratzen saiatzen da.
-        if (dequeue_process(queue, &process) == 0) {
-            printf("[Scheduler] Prozesua bidaltzen, PIDa: %d\n", process->pid);
-            free(process); // Tenporala, dispatcherra oraindik ez dugulako programatu
-        } else {
-            printf("[Scheduler] Ez dago prozesurik ilaran.\n");
+        // Amaitutakoak jaso eta quantum-a kudeatu: hurrengo pausuetan
+
+        while (machine_free_count(machine) > 0) {
+            PCB *process = policy(queue);
+            if (process == NULL) {
+                break; 
+            }
+            if (dispatch_process(machine, process) != 0) {
+                fprintf(stderr, "Error: dispatch_process failed\n");
+                free(process);
+                break;
+            }
+            printf("[Scheduler] PID %d -> CPU %d, core %d, hwthread %d\n",
+                   process->pid, process->hwthread->cpu_id,
+                   process->hwthread->core_id, process->hwthread->thread_id)
         }
     }
 
