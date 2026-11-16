@@ -37,7 +37,7 @@ void destroy_machine(Machine *m)
 
 	for(int i = 0; i<m->total_hwthreads; i++)
 	{
-		free(m->hwthreads[i].process)
+		free(m->hwthreads[i].process);
 	}
 	free(m->hwthreads);
 	m->hwthreads = NULL;
@@ -227,7 +227,7 @@ int machine_free_count(Machine *m)
 	int libre;
 	pthread_mutex_lock(&m->mutex);
 	libre = m->free_hwthreads;
-	pthread_mutex_unlock(&m->mutex):
+	pthread_mutex_unlock(&m->mutex);
 
 	return libre;
 }
