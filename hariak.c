@@ -64,6 +64,33 @@ void *clockErrutina(void *arg) {
         // Hurrengo ziklorako prest dauden tenporizadoreen kontagailua berrezartzen du.
         done = 0;
         ticks_erloju++;
+        pthread_mutex_lock(&args->machine->mutex);
+        for (int i = 0; i < args->machine->total_hwthreads; i++) {
+            // HW-thread hau okupatuta badago
+            if (args->machine->hwthreads[i].busy == 1 && args->machine->hwthreads[i].process != NULL) {
+                // Ziklo bat kontsumitu
+                args->machine->hwthreads[i].process->life_time--;
+                
+                // Prozesua amaitu bada 
+                if (args->machine->hwthreads[i].process->life_time == 0) {
+                    printf("[Clock] Prozesua %d amaituta (CPU %d, core %d, thread %d)\n", 
+                           args->machine->hwthreads[i].process->pid,
+                           args->machine->hwthreads[i].cpu_id,
+                           args->machine->hwthreads[i].core_id,
+                           args->machine->hwthreads[i].thread_id);
+                           
+                    // Egoera eguneratu (nahiz eta zuzenean askatu)
+                    args->machine->hwthreads[i].process->egoera = PROC_FINISHED;
+                    
+                    // Memoria askatu eta HW-thread-a libre utzi
+                    free(args->machine->hwthreads[i].process); 
+                    args->machine->hwthreads[i].process = NULL;
+                    args->machine->hwthreads[i].busy = 0;
+                    args->machine->free_hwthreads++;
+                }
+            }
+        }
+        pthread_mutex_unlock(&args->machine->mutex);
         // Tenporizadore guztiak batera esnatzen ditu tick berria prozesatzeko.
         pthread_cond_broadcast(&cond_timer2);
         // PGri tick berria jakinarazten dio; PGk bere hurrengo tartea aukeratzen du.
