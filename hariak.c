@@ -26,12 +26,12 @@ ThreadArgs sortuThreadArgs(int clock_freq, int timer_freq, int duration, Process
         .clock_freq = clock_freq,
         .timer_freq = timer_freq,
         .duration = duration,
-        .queue = queue;
-        .machine = machine;
-        .policy = policy;
+        .queue = queue,
+        .machine = machine,
+        .policy = policy
     };
 
-    if (queue == NULL || machine == null || policy == NULL) {
+    if (queue == NULL || machine == NULL || policy == NULL) {
         // Ilara nulua bada, konfigurazioa ez da balioduna.
         fprintf(stderr, "Error: Invalid arguments to sortuThreadArgs\n");
         return (ThreadArgs){0};
@@ -191,7 +191,7 @@ void *pgErrutina(void *arg) {
 void *schedulerErrutina(void *arg) {
     ThreadArgs *args = (ThreadArgs *)arg;
 
-    if (args == NULL || args->queue == NULL || args->machine == NULL || args->policy) {
+    if (args == NULL || args->queue == NULL || args->machine == NULL || args->policy == NULL) {
         // Ilara gabe scheduler-ak ezin du prozesurik kudeatu.
         fprintf(stderr, "Error: Invalid arguments schedulerErrutina\n");
         return NULL;
@@ -213,19 +213,19 @@ void *schedulerErrutina(void *arg) {
 
         // Amaitutakoak jaso eta quantum-a kudeatu: hurrengo pausuetan
 
-        while (machine_free_count(machine) > 0) {
-            PCB *process = policy(queue);
+        while (machine_free_count(args->machine) > 0) {
+            PCB *process = args->policy(args->queue);
             if (process == NULL) {
                 break; 
             }
-            if (dispatch_process(machine, process) != 0) {
+            if (dispatch_process(args->machine, process) != 0) {
                 fprintf(stderr, "Error: dispatch_process failed\n");
                 free(process);
                 break;
             }
             printf("[Scheduler] PID %d -> CPU %d, core %d, hwthread %d\n",
                    process->pid, process->hwthread->cpu_id,
-                   process->hwthread->core_id, process->hwthread->thread_id)
+                   process->hwthread->core_id, process->hwthread->thread_id);
         }
     }
 
