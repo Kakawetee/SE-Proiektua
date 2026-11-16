@@ -56,7 +56,13 @@ typedef PCB *(*SchedPolicy)(ProcessQueue *ready);
 
 PCB *policy_fcfs(ProcessQueue *ready);
 int machine_free_count(Machine *machine);
-int dispatch_process(Machine *machine, PCB *pcb);
+// Helbide bikoitza HWThread-a atera ahal izateko
+int dispatch_process(Machine *machine, PCB *pcb, HWThread **hw_out);
+// prozesuaren tick-a kontsumitu
+void machine_consume_tick(Machine *machine, ProcessQueue *finished);
+// create_process-eko ilaratzea banandu
+int enqueue_pcb(ProcessQueue *queue, PCB *pcb);
+
 
 int init_machine(Machine *machine, int cpu_numb, int cores_per_cpu, int hwthreads_per_core);
 void destroy_machine(Machine *machine);
