@@ -20,18 +20,19 @@ extern pthread_cond_t cond_pg;
 extern pthread_mutex_t mutex_ilara;
 extern pthread_cond_t cond_ilara;
 
-ThreadArgs sortuThreadArgs(int clock_freq, int timer_freq, int duration, ProcessQueue *queue, Machine *machine, SchedPolicy policy) {
+ThreadArgs sortuThreadArgs(int clock_freq, int timer_freq, int duration, ProcessQueue *queue, ProcessQueue *finished, Machine *machine, SchedPolicy policy) {
     // Hari guztiek behar duten konfigurazioa egitura bakarrean biltzen du.
     ThreadArgs args = {
         .clock_freq = clock_freq,
         .timer_freq = timer_freq,
         .duration = duration,
         .queue = queue,
+        .finished = finished,
         .machine = machine,
         .policy = policy
     };
 
-    if (queue == NULL || machine == NULL || policy == NULL) {
+    if (queue == NULL || finished == NULL || machine == NULL || policy == NULL) {
         // Ilara nulua bada, konfigurazioa ez da balioduna.
         fprintf(stderr, "Error: Invalid arguments to sortuThreadArgs\n");
         return (ThreadArgs){0};
@@ -64,33 +65,9 @@ void *clockErrutina(void *arg) {
         // Hurrengo ziklorako prest dauden tenporizadoreen kontagailua berrezartzen du.
         done = 0;
         ticks_erloju++;
-        pthread_mutex_lock(&args->machine->mutex);
-        for (int i = 0; i < args->machine->total_hwthreads; i++) {
-            // HW-thread hau okupatuta badago
-            if (args->machine->hwthreads[i].busy == 1 && args->machine->hwthreads[i].process != NULL) {
-                // Ziklo bat kontsumitu
-                args->machine->hwthreads[i].process->life_time--;
-                
-                // Prozesua amaitu bada 
-                if (args->machine->hwthreads[i].process->life_time == 0) {
-                    printf("[Clock] Prozesua %d amaituta (CPU %d, core %d, thread %d)\n", 
-                           args->machine->hwthreads[i].process->pid,
-                           args->machine->hwthreads[i].cpu_id,
-                           args->machine->hwthreads[i].core_id,
-                           args->machine->hwthreads[i].thread_id);
-                           
-                    // Egoera eguneratu (nahiz eta zuzenean askatu)
-                    args->machine->hwthreads[i].process->egoera = PROC_FINISHED;
-                    
-                    // Memoria askatu eta HW-thread-a libre utzi
-                    free(args->machine->hwthreads[i].process); 
-                    args->machine->hwthreads[i].process = NULL;
-                    args->machine->hwthreads[i].busy = 0;
-                    args->machine->free_hwthreads++;
-                }
-            }
-        }
-        pthread_mutex_unlock(&args->machine->mutex);
+        // Exekutatzen ari diren prozesuen bizitza kontsumitu
+        machine_consume_tick(args->machine, args->finished);
+        
         // Tenporizadore guztiak batera esnatzen ditu tick berria prozesatzeko.
         pthread_cond_broadcast(&cond_timer2);
         // PGri tick berria jakinarazten dio; PGk bere hurrengo tartea aukeratzen du.
