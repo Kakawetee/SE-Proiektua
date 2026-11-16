@@ -2,6 +2,7 @@
 
 #include <errno.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 // *** SORTUTAKO STRUCT-AK HASIERATZEKO FUNTZIOAK *** //
 ////////////////////////////////////////////////////////
@@ -110,65 +111,48 @@ void destroy_process_queue(ProcessQueue *queue)
 	pthread_mutex_destroy(&queue->mutex);
 }
 
-//
-int create_process(ProcessQueue *queue, int pid, int life_time, int arrival_time)
+int enqueue_pcb(ProcessQueue *queue, PCB *pcb)
 {
 	Node *node;
-	PCB *pcb;
-	int result;
 
-	if (queue == NULL)
-	{
-		return EINVAL;
-	}
+	if(queue == NULL || pcb == NULL) return EINVAL;
 
-	pcb = malloc(sizeof(*pcb));
-	if (pcb == NULL)
-	{
-		return ENOMEM;
-	}
-	
 	node = malloc(sizeof(*node));
-	if (node == NULL)
-	{
-		return ENOMEM;
-	}
+	if(node == NULL) return ENOMEM;
+	init_node(node,pcb);
 
-	init_pcb(pcb, pid, life_time, arrival_time); // Pcb-a direktu pasatzen zaie, kopia sortuz gero, &pcb sartu beharko litzateke
-	init_node(node, pcb);
-
-	// main.c-n begiratu 0 ez badu bueltatzen akatsen bat egon da, beraz berriro
-	// prozesua sortzen saiatu beharko litzateke
-	result = pthread_mutex_lock(&queue->mutex);
-	if (result != 0)
+	if(pthread_mutex_lock(&queue->mutex) != 0)
 	{
-		free(pcb);
 		free(node);
-		return result;
+		return EAGAIN;
 	}
 
-	// Hutsa badagao, head-era atzitu
-	if (queue->tail == NULL)
-	{
-		queue->head = node;
-		// Kontrakoan, bukaeran gehitu
-	}
-	else
-	{
-		queue->tail->next = node;
-	}
-
+	if(queue->tail == NULL) queue->head = node;
+	else					queue->tail->next = node;
 	queue->tail = node;
 	queue->size++;
 
-	// lock egitean egin beharreko berdina, main.c-n akatsekin adi
-	result = pthread_mutex_unlock(&queue->mutex);
-	if (result != 0)
-	{
-		return result;
-	}
-
+	pthread_mutex_unlock(&queue->mutex);
 	return 0;
+}
+
+int create_process(ProcessQueue *queue, int pid, int life_time, int arrival_time)
+{
+	PCB *pcb;
+	int result;
+
+	if (queue == NULL) return EINVAL;
+
+	pcb = malloc(sizeof(*pcb));
+	if (pcb == NULL) return ENOMEM;
+	
+	init_pcb(pcb, pid, life_time, arrival_time); // Pcb-a direktu pasatzen zaie, kopia sortuz gero, &pcb sartu beharko litzateke
+
+	result = enqueue_pcb(queue,pcb);
+	if(result != 0) free(pcb);
+
+	return result;
+
 }
 
 // Ilaratik prozesua ateratzeko
