@@ -216,7 +216,7 @@ int machine_free_count(Machine *m)
 	return libre;
 }
 
-int dispatch_process(Machine *m, PCB *pcb)
+int dispatch_process(Machine *m, PCB *pcb, HWThread **hw_out)
 {
 	if (m == NULL || pcb == NULL) return EINVAL;
 
@@ -230,6 +230,10 @@ int dispatch_process(Machine *m, PCB *pcb)
 			pcb->hwthread = &m->hwthreads[i];
 			pcb->egoera = PROC_RUNNING;
 			m->free_hwthreads--;
+			// NULL baliozkoa da, use-after-free arazoa solbatzeko erabiltzen da,
+			// schedulerrak prozesua zein harietan geratu den jakin behar du
+			// pcb-a berriro irakurri behar gabe
+			if (hw_out != NULL) *hw_out = &m->hwthreads[i];
 			pthread_mutex_unlock(&m->mutex);
 			return 0;
 		}
@@ -237,4 +241,32 @@ int dispatch_process(Machine *m, PCB *pcb)
 	pthread_mutex_unlock(&m->mutex);
 
 	return ENOSPC;
+}
+
+void machine_consume_tick(Machine *m, ProcessQueue *finished)
+{
+	pthread_mutex_lock(&m->mutex);
+	for (int i = 0; i < m->total_hwthreads; i++) {
+		HWThread *hw = &m->hwthreads[i];
+		PCB *pcb = hw->process;
+
+		// Aske badago ez da zertan tratatu behar
+		if(!hw->busy || pcb == NULL) continue;
+
+		pcb->life_time--;
+		if(pcb->life_time<=0)
+		{
+			printf("[Clock] Prozesua %d amaituta (CPU %d, core %d, thread %d)\n",
+			       pcb->pid, hw->cpu_id, hw->core_id, hw->thread_id);
+
+			pcb->egoera = PROC_FINISHED;
+			pcb->hwthread = NULL;
+			hw->process = NULL;
+			hw->busy = 0;
+			m->free_hwthreads++;
+
+			if (enqueue_pcb(finished, pcb) != 0) free(pcb);
+		}
+	}
+	pthread_mutex_unlock(&m->mutex);
 }
