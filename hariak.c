@@ -222,14 +222,14 @@ void *schedulerErrutina(void *arg) {
             if (process == NULL) {
                 break; 
             }
-            if (dispatch_process(args->machine, process) != 0) {
+            HWThread *hw = NULL;
+            if (dispatch_process(args->machine, process, &hw) != 0) {
                 fprintf(stderr, "Error: dispatch_process failed\n");
                 free(process);
                 break;
             }
             printf("[Scheduler] PID %d -> CPU %d, core %d, hwthread %d\n",
-                   process->pid, process->hwthread->cpu_id,
-                   process->hwthread->core_id, process->hwthread->thread_id);
+                   process->pid, hw->cpu_id, hw->core_id, hw->thread_id);
         }
     }
 
