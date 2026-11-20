@@ -103,7 +103,6 @@ int main(int argc, char *argv[])
 	
 // 1. Datu egiturak hasieratu
 	Machine machine;
-	init_machine(&machine, cpus, cores, hwthreads);
 	if (init_machine(&machine, cpus, cores, hwthreads) != 0)
 	{
 		fprintf(stderr, "Errorea makina hasieratzean.\n");
@@ -115,11 +114,13 @@ int main(int argc, char *argv[])
 	{
 		
 		fprintf(stderr, "Errorea ilara hasieratzean.\n");
+		destroy_process_queue(&queue);
 		destroy_machine(&machine);
 		return 1;
 	}
 	
-	ThreadArgs args = sortuThreadArgs(clock_freq, timer_freq, duration, &queue, &machine, policy_fcfs);
+	ThreadArgs args = sortuThreadArgs(clock_freq, timer_freq, duration, &queue, 
+		&finished, &machine, policy_fcfs);
 
 	// 2. Sistemako hariak pthread_create bidez abiarazi
 	pthread_t clock_thread;
@@ -150,6 +151,7 @@ int main(int argc, char *argv[])
 
 	// 4. Baliabide guztiak askatu
 	destroy_process_queue(&queue);
+	destroy_process_queue(&finished);
 	destroy_machine(&machine);
 	return 0;
 }

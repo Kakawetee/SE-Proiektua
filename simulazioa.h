@@ -55,6 +55,8 @@ typedef struct
 typedef PCB *(*SchedPolicy)(ProcessQueue *ready);
 
 PCB *policy_fcfs(ProcessQueue *ready);
+PCB *policy_sjf(ProcessQueue *ready);
+
 int machine_free_count(Machine *machine);
 // Helbide bikoitza HWThread-a atera ahal izateko
 int dispatch_process(Machine *machine, PCB *pcb, HWThread **hw_out);
