@@ -201,8 +201,52 @@ PCB *policy_fcfs(ProcessQueue *ready)
 	PCB *pcb = NULL;
 
 	if (dequeue_process(ready, &pcb) != 0) return NULL;
+	
+	return pcb;
+}
+
+PCB *policy_sjf(ProcessQueue *ready)
+{
+	Node *prev = NULL;
+	Node *cur;
+	Node *best = NULL;
+	Node *best_prev = NULL;
+	PCB *pcb;
+
+	if(ready == NULL) return NULL;
+
+	if(pthread_mutex_lock(&ready->mutex) != 0) return NULL;
+
+	for (cur = ready->head; cur != NULL; prev = cur, cur = cur->next)
+	{
+		if(best == NULL || cur->pcb->life_time < best->pcb->life_time)
+		{
+			best = cur;
+			best_prev = prev;
+		}
+	}
+
+	if (best == NULL)
+	{
+		pthread_mutex_unlock(&ready->mutex);
+		return NULL;
+	}
+
+	// best_prev head zan, beraz, head hurrengoa izango da
+	if (best_prev == NULL) ready->head = best->next;
+	// Bestela, jauzi egiten da
+	else best_prev->next = best->next;
+
+	if(best == ready->tail) ready->tail = best->prev;
+	ready->size--;
+	pcb = best->pcb;
+
+	pthread_mutex_unlock(&ready->mutex);
+	free(best);
 
 	return pcb;
+
+
 }
 
 int machine_free_count(Machine *m) 

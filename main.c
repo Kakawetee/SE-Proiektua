@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 
 // Aldagai globalak simulaziorako
 int ticks_erloju = 0;
@@ -52,6 +53,8 @@ static int irakurriZenbakia(const char *parametroa, const char *balioa)
 
 int main(int argc, char *argv[])
 {
+	SchedPolicy policy = policy_fcfs; // lehenetsia
+
 	for (int i = 1; i < argc; i += 2)
 	{
 		if (i + 1 >= argc)
@@ -91,6 +94,19 @@ int main(int argc, char *argv[])
 			balioa = irakurriZenbakia(argv[i], argv[i + 1]);
 			duration = balioa;
 		}
+		else if (strcmp(argv[i], "-policy") == 0)
++		{
++			if (strcasecmp(argv[i + 1], "FCFS") == 0)
++				policy = policy_fcfs;
++			else if (strcasecmp(argv[i + 1], "SJF") == 0)
++				policy = policy_sjf;
++			else
++			{
++				fprintf(stderr, "Planifikazio politika ezezaguna: %s\n", argv[i + 1]);
++				return 1;
++			}
+			balioa = 0; // ez da zenbakizko parametroa
+		}
 		else
 		{
 			fprintf(stderr, "Parametro ezezaguna: %s\n", argv[i]);
@@ -120,7 +136,7 @@ int main(int argc, char *argv[])
 	}
 	
 	ThreadArgs args = sortuThreadArgs(clock_freq, timer_freq, duration, &queue, 
-		&finished, &machine, policy_fcfs);
+		&finished, &machine, policy);
 
 	// 2. Sistemako hariak pthread_create bidez abiarazi
 	pthread_t clock_thread;
